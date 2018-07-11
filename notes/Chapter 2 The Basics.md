@@ -1,11 +1,12 @@
 # Chapter 2: The Basics
+
 ## 1. Linux Namespace
 
 * User ID level isolation, user 1 with UID=n has root access in virtual namespace
 
 * PID can be virtualized as well. Different namespaces have their own init process (PID=1). Processes in child NS are mapped onto parent NS; parent NS aware of child NS processes; different child NSs are isolated.
 
-![](../resources/ch2_1.jpg)
+![Namespaces](../resources/ch2_1.jpg)
 
 * API:
 
