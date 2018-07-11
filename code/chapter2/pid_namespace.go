@@ -1,5 +1,12 @@
 package main
 
+/*	host:
+	$ pstree -pl
+
+	container:
+	$ echo $$
+*/
+
 import (
 	"log"
 	"os"

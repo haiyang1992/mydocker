@@ -1,5 +1,14 @@
 package main
 
+/*	host
+	$ readlink /proc/{host_pid}/ns/uts
+	$ readlink /proc/{child_pid}/ns/uts
+	$ hostname
+
+	container:
+	$ hostname -b new_hostname
+*/
+
 import (
 	"log"
 	"os"

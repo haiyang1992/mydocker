@@ -1,5 +1,12 @@
 package main
 
+/*	container:
+	$ ls proc
+	$ mount -t proc proc /proc
+	$ ls proc
+	$ ps -ef
+*/
+
 import (
 	"log"
 	"os"

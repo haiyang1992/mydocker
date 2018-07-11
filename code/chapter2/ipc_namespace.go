@@ -1,5 +1,12 @@
 package main
 
+/*	host:
+	$ ipcmk -Q
+
+	container:
+	$ ipcs -q
+*/
+
 import (
 	"log"
 	"os"

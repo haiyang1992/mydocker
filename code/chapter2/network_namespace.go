@@ -1,5 +1,12 @@
 package main
 
+/*	host:
+	$ ifconfig
+
+	container:
+	$ ifconfig
+*/
+
 import (
 	"log"
 	"os"

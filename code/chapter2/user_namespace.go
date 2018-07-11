@@ -1,5 +1,12 @@
 package main
 
+/*	host:
+	$ id
+
+	container:
+	$ ud
+*/
+
 import (
 	"log"
 	"os"

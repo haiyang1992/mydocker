@@ -1,5 +1,7 @@
 package main
 
+// running top after running this code should show mem percentage = 500m/system memory size
+
 import (
 	"fmt"
 	"io/ioutil"
@@ -13,7 +15,6 @@ import (
 // root dir location of the memory subsystem hierarchy
 const cgroupMemoryHierarchyMount = "/sys/fs/cgroup/memory"
 
-// running top after running this code should show mem percentage = 500m/system memory size
 func main() {
 	if os.Args[0] == "/proc/self/exe" {
 		// container process
