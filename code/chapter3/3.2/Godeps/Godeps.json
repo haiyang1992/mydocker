@@ -1,0 +1,33 @@
+{
+	"ImportPath": "github.com/haiyang1992/mydocker/code/chapter3/3.2",
+	"GoVersion": "go1.10",
+	"GodepVersion": "v80",
+	"Deps": [
+		{
+			"ImportPath": "github.com/onrik/logrus/filename",
+			"Rev": "00f4ddfaeb23824ce8b9ce969095a9b2529b9eca"
+		},
+		{
+			"ImportPath": "github.com/sirupsen/logrus",
+			"Comment": "v1.0.5-40-ge54a777",
+			"Rev": "e54a77765aca7bbdd8e56c1c54f60579968b2dc9"
+		},
+		{
+			"ImportPath": "github.com/urfave/cli",
+			"Comment": "v1.19.1",
+			"Rev": "0bdeddeeb0f650497d603c4ad7b20cfe685682f6"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/ssh/terminal",
+			"Rev": "a49355c7e3f8fe157a85be2f77e6e269a0f89602"
+		},
+		{
+			"ImportPath": "golang.org/x/sys/unix",
+			"Rev": "1b2967e3c290b7c545b3db0deeda16e9be4f98a2"
+		},
+		{
+			"ImportPath": "golang.org/x/sys/windows",
+			"Rev": "1b2967e3c290b7c545b3db0deeda16e9be4f98a2"
+		}
+	]
+}
