@@ -7,8 +7,9 @@ import (
 )
 
 /*
-	NewParentProcess is executed by the parent process
-	1. /proc/self refers to the env of the current process, exec just runs itself to initializa child proc
+	NewParentProcess
+	This is executed by the parent process
+	1. /proc/self refers to the env of the current process (mydocker), exec just runs itself to initialize a child proc
 	2. args is the parameters, with "init" being the first argument passed to the process
 	3. the clone arguments forks a new process and uses namespace for isolation
 	4. if user specifies "-ti", then I/O of the process is redirected to std I/O
