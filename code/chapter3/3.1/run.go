@@ -4,11 +4,11 @@ import (
 	"os"
 	"syscall"
 
-	"./container"
+	"github.com/haiyang1992/mydocker/code/chapter3/3.1/container"
 	log "github.com/sirupsen/logrus"
 )
 
-// Run Actually runs the created command. Clones a process with namespace isolation, and runs /proc/self/exe in child process, sends parameters for init, and runs init to initialize the container's resources
+// Run actually runs the created command. Clones a process with namespace isolation, and runs /proc/self/exe in child process, sends parameters for init, and runs init to initialize the container's resources
 func Run(tty bool, command string) {
 	parent := container.NewParentProcess(tty, command)
 	if err := parent.Start(); err != nil {

@@ -8,9 +8,8 @@ import (
 )
 
 /*
-	RunContainerInitProcess
-	The init function runs inside a container. Now the process which holds the container
-	has been created.
+	RunContainerInitProcess runs inside a container.
+	Now the process which holds the container has been created.
 	Use mount to mount proc fs, so that we can use ps, etc. to check process resources
 */
 func RunContainerInitProcess(command string, args []string) error {

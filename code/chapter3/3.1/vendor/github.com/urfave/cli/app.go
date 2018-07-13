@@ -83,17 +83,8 @@ type App struct {
 	Writer io.Writer
 	// ErrWriter writes error output
 	ErrWriter io.Writer
-	// Execute this function to handle ExitErrors. If not provided, HandleExitCoder is provided to
-	// function as a default, so this is optional.
-	ExitErrHandler ExitErrHandlerFunc
 	// Other custom info
 	Metadata map[string]interface{}
-	// Carries a function which returns app specific info.
-	ExtraInfo func() map[string]string
-	// CustomAppHelpTemplate the text template for app help topic.
-	// cli.go uses text/template to render templates. You can
-	// render custom help text by setting this variable.
-	CustomAppHelpTemplate string
 
 	didSetup bool
 }
@@ -210,7 +201,7 @@ func (a *App) Run(arguments []string) (err error) {
 	if err != nil {
 		if a.OnUsageError != nil {
 			err := a.OnUsageError(context, err, false)
-			a.handleExitCoder(context, err)
+			HandleExitCoder(err)
 			return err
 		}
 		fmt.Fprintf(a.Writer, "%s %s\n\n", "Incorrect Usage.", err.Error())
@@ -245,7 +236,7 @@ func (a *App) Run(arguments []string) (err error) {
 		if beforeErr != nil {
 			fmt.Fprintf(a.Writer, "%v\n\n", beforeErr)
 			ShowAppHelp(context)
-			a.handleExitCoder(context, beforeErr)
+			HandleExitCoder(beforeErr)
 			err = beforeErr
 			return err
 		}
@@ -267,7 +258,7 @@ func (a *App) Run(arguments []string) (err error) {
 	// Run default Action
 	err = HandleAction(a.Action, context)
 
-	a.handleExitCoder(context, err)
+	HandleExitCoder(err)
 	return err
 }
 
@@ -334,7 +325,7 @@ func (a *App) RunAsSubcommand(ctx *Context) (err error) {
 	if err != nil {
 		if a.OnUsageError != nil {
 			err = a.OnUsageError(context, err, true)
-			a.handleExitCoder(context, err)
+			HandleExitCoder(err)
 			return err
 		}
 		fmt.Fprintf(a.Writer, "%s %s\n\n", "Incorrect Usage.", err.Error())
@@ -356,7 +347,7 @@ func (a *App) RunAsSubcommand(ctx *Context) (err error) {
 		defer func() {
 			afterErr := a.After(context)
 			if afterErr != nil {
-				a.handleExitCoder(context, err)
+				HandleExitCoder(err)
 				if err != nil {
 					err = NewMultiError(err, afterErr)
 				} else {
@@ -369,7 +360,7 @@ func (a *App) RunAsSubcommand(ctx *Context) (err error) {
 	if a.Before != nil {
 		beforeErr := a.Before(context)
 		if beforeErr != nil {
-			a.handleExitCoder(context, beforeErr)
+			HandleExitCoder(beforeErr)
 			err = beforeErr
 			return err
 		}
@@ -387,7 +378,7 @@ func (a *App) RunAsSubcommand(ctx *Context) (err error) {
 	// Run default Action
 	err = HandleAction(a.Action, context)
 
-	a.handleExitCoder(context, err)
+	HandleExitCoder(err)
 	return err
 }
 
@@ -453,6 +444,7 @@ func (a *App) hasFlag(flag Flag) bool {
 }
 
 func (a *App) errWriter() io.Writer {
+
 	// When the app ErrWriter is nil use the package level one.
 	if a.ErrWriter == nil {
 		return ErrWriter
@@ -464,14 +456,6 @@ func (a *App) errWriter() io.Writer {
 func (a *App) appendFlag(flag Flag) {
 	if !a.hasFlag(flag) {
 		a.Flags = append(a.Flags, flag)
-	}
-}
-
-func (a *App) handleExitCoder(context *Context, err error) {
-	if a.ExitErrHandler != nil {
-		a.ExitErrHandler(context, err)
-	} else {
-		HandleExitCoder(err)
 	}
 }
 
@@ -502,7 +486,7 @@ func HandleAction(action interface{}, context *Context) (err error) {
 	} else if a, ok := action.(func(*Context)); ok { // deprecated function signature
 		a(context)
 		return nil
+	} else {
+		return errInvalidActionType
 	}
-
-	return errInvalidActionType
 }
