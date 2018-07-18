@@ -57,9 +57,77 @@
     ```
 
     * ```mount``` only shows what we have mounted, and no devices are inherited from the host/parent process
+
     ```console
     / # mount
     /dev/sda7 on / type ext4 (rw,relatime,errors=remount-ro,data=ordered)
     proc on /proc type proc (rw,nosuid,nodev,noexec,relatime)
     tmpfs on /dev type tmpfs (rw,nosuid,mode=755)
     ```
+
+## 2. Use AUFS to package busybox
+
+* In section 4.1, the container's root has been directed to ```/root/busybox``` on the host. However any changes to files inside the container are reflected in the host. Now we try to achieve isolation between a container and an image, so that changes in the container do not affect the image.
+
+* ```NewWorkSpace()``` creates a new container fs, which includes:
+
+    * ```CreateReadOnlyLayer()``` creates a new ```busybox``` folder, untars ```busybox.tar``` into it, and uses the folder as the read-only layer of the container.
+
+    * ```CreateWriteLayer()``` creates a ```writeLayer``` folder, as the only write-layer of the container.
+
+    * ```CreateMountPoint()``` creates a ```mnt``` folder as the mount point, and mounts ```writeLayer``` and ```busybox``` onto ```mnt```
+
+* When the container exits, ```DeleteWorkSpace()``` deletes ```WriteLayer```
+
+    * ```DeleteMountPoint()``` unmounts the ```mnt``` directory
+
+    * delete the ```mnt``` directory
+
+    * ```DeleteWriteLayer()``` deletes the ```writeLayer``` folder
+
+* Program flow:
+
+    ![Creating Workspace](../resources/ch4_1.jpg)
+
+* Testing:
+
+    ```console
+    $ ls /root/
+    busybox.tar
+
+    $ ./mydocker run -ti sh
+    {"level":"info","msg":"init come on","source":"4.2/main_command.go:71","time":"2018-07-18T16:26:11+08:00"}
+    {"level":"info","msg":"complete command is sh","source":"4.2/run.go:47","time":"2018-07-18T16:26:11+08:00"}
+    {"level":"info","msg":"Current location is /root/mnt","source":"container/init.go:61","time":"2018-07-18T16:26:11+08:00"}
+    {"level":"info","msg":"bind mounted /root/mnt","source":"container/init.go:87","time":"2018-07-18T16:26:11+08:00"}
+    {"level":"info","msg":"pivot_root to /root/mnt, old root at /root/mnt/.pivot_root","source":"container/init.go:101","time":"2018-07-18T16:26:11+08:00"}
+    {"level":"info","msg":"unmounted /.pivot_root","source":"container/init.go:112","time":"2018-07-18T16:26:11+08:00"}
+    {"level":"info","msg":"removed /.pivot_root","source":"container/init.go:118","time":"2018-07-18T16:26:11+08:00"}
+    {"level":"info","msg":"Find path /bin/sh","source":"container/init.go:35","time":"2018-07-18T16:26:11+08:00"}
+    / # ls
+    bin   dev   etc   home  proc  root  sys   tmp   usr   var
+    / # mkdir tmp/temp.txt
+    / # ls tmp/
+    temp.txt
+    ```
+
+    * In another terminal, we can see that the contents in ```busybox``` are not changed, but a ```tmp``` directory and a ```temp.txt``` are created  under ```writeLayer```. The container did not modify the ```tmp``` directory in the image, but rather copied the ```tmp``` directory to ```writeLayer``` to make modifications
+
+    ```console
+    $ ls /root
+    busybox  busybox.tar  mnt  writeLayer
+
+    $ ls /root/busybox
+    bin  dev  etc  home  proc  root  sys  tmp  usr  var
+
+    $ ls /root/writeLayer/
+    tmp
+
+    $ ls /root/writeLayer/tmp/
+    temp.txt
+
+    # after exiting the container
+    $ ls /root
+    busybox  busybox.tar
+
+    ````
