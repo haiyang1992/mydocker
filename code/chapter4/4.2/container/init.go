@@ -58,7 +58,7 @@ func setupMount() {
 		log.Errorf("Get current location error %v", err)
 		return
 	}
-	log.Infof("Current location is %s", pwd)
+	log.Infof("current location is %s", pwd)
 	if err := pivotRoot(pwd); err != nil {
 		log.Errorf("%v", err)
 	}
@@ -66,8 +66,10 @@ func setupMount() {
 	// mount proc
 	defaultMountFlags := syscall.MS_NOEXEC | syscall.MS_NOSUID | syscall.MS_NODEV
 	syscall.Mount("proc", "/proc", "proc", uintptr(defaultMountFlags), "")
+	log.Infof("mounted proc on /proc")
 
 	syscall.Mount("tmpfs", "/dev", "tmpfs", syscall.MS_NOSUID|syscall.MS_STRICTATIME, "mode=755")
+	log.Infof("mounted tmpfs on /dev")
 }
 
 func pivotRoot(root string) error {
@@ -77,6 +79,7 @@ func pivotRoot(root string) error {
 	if err := syscall.Mount("", "/", "", syscall.MS_PRIVATE|syscall.MS_REC, ""); err != nil {
 		return fmt.Errorf("mount --make-rprivate / %v", err)
 	}
+	log.Infof("executed \"mount --make-rprivate /\"")
 	/*
 		We need to remount root s.t. the old root and new root will be on different fs
 		bind mount is used to replicate an already mounted dir tree

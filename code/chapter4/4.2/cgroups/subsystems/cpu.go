@@ -6,6 +6,8 @@ import (
 	"os"
 	"path"
 	"strconv"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // CPUSubSystem struct
@@ -16,6 +18,8 @@ type CPUSubSystem struct {
 func (c *CPUSubSystem) Set(cgroupPath string, res *ResourceConfig) error {
 	// GetCgroupPath gets the path of the current subsystem in the virtual fs
 	if subsysCgroupPath, err := GetCgroupPath(c.Name(), cgroupPath, true); err == nil {
+		subsysName, _ := path.Split(subsysCgroupPath)
+		log.Infof("Found subsystem's cgroupPath at %s", subsysName)
 		if res.CPUShare != "" {
 			if err := ioutil.WriteFile(path.Join(subsysCgroupPath, "cpu.shares"), []byte(res.CPUShare), 0644); err != nil {
 				return fmt.Errorf("set cgroup CPU share fail %v", err)
