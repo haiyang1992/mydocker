@@ -131,3 +131,189 @@
     busybox  busybox.tar
 
     ````
+
+## 3. Realizing data volume
+
+* Volume is used to make sure that user modifed content in the container are persistent. We added a "-v" flag to the program, passing in a string ```volume```.
+
+* Steps to create container FS:
+
+    1. create read-only layer (```busybox```)
+
+    2. create container's r-w layer (```writeLayer```)
+
+    3. create mount point (```mnt```) and mount the above two layers to the mount point
+
+    4. use the mount point as root dir of the container
+
+    5. if ```volume``` is null, finish the creation phase as the volume option is not used
+
+    6. if ```volume``` is not null, then calls ```volumeURLExtract()``` to process the ```volume``` string
+
+    7. if ```volumeUrlExtract()``` returns char array with a length of 2 and both elements are non-null (this should be the correct argument format for "-v"), calls ```MountVolume()``` to mount the data volume
+
+        * steps for ```MountVolume()```
+
+        1. reads the URL of the directory on the parent/host, and creates ```/root/${parentURL}```
+
+        2. reads mount point URL inside the container, and creates ```/root/mnt/${containerURL}```
+
+        3. mount the parent's directory URL onto the container mount point URL
+
+    8. else, notify that the user input for ```volume``` has a wrong value
+
+* Steps at container exit:
+
+    1. only when ```volume``` is not null and ```volumeUrlExtract()``` returns a correct array (see above) do we run ```DeleteMountPointWithVolume()```
+
+        1. unmount the fs mounted on the volume ```/root/mnt/${containerURL}``` to ensure that the mount point in the container is not in use
+
+        2. call ```DeleteMountPoint()```
+
+    2. otherwise we run ```DeleteMountPoint()```:
+
+        1. unmount the fs on the mount point ```mnt```
+
+        2. delete the mount point
+
+    3. delete the r-w layer (```writeLayer```)
+
+* Program flow:
+
+    ![Using volumes](../resources/ch4_2.jpg)
+
+* Test 1 mounts a previous non-existent directory on the host onto the container:
+
+    * Note the extra ```containerVolume``` directory in the container
+
+        ```console
+        $ sudo ./mydocker run -ti -v /root/volume:/containerVolume sh
+        INFO[0000] mounted volumes: ["/root/volume" "/containerVolume"]  source="container/container_process.go:68"
+        INFO[0000] found subsystem's cgroupPath at /sys/fs/cgroup/cpuset/  source="subsystems/cpu_set.go:22"
+        INFO[0000] found subsystem's cgroupPath at /sys/fs/cgroup/memory/  source="subsystems/memory.go:22"
+        INFO[0000] found subsystem's cgroupPath at /sys/fs/cgroup/cpu,cpuacct/  source="subsystems/cpu.go:22"
+        INFO[0000] complete command is sh                        source="4.3/run.go:51"
+        INFO[0000] init come on                                  source="4.3/main_command.go:76"
+        INFO[0000] current location is /root/mnt                 source="container/init.go:61"
+        INFO[0000] executed "mount --make-rprivate /"            source="container/init.go:82"
+        INFO[0000] bind mounted /root/mnt                        source="container/init.go:90"
+        INFO[0000] pivot_root to /root/mnt, old root at /root/mnt/.pivot_root  source="container/init.go:104"
+        INFO[0000] unmounted /.pivot_root                        source="container/init.go:115"
+        INFO[0000] removed /.pivot_root                          source="container/init.go:121"
+        INFO[0000] mounted proc on /proc                         source="container/init.go:69"
+        INFO[0000] mounted tmpfs on /dev                         source="container/init.go:72"
+        INFO[0000] found path /bin/sh                             source="container/init.go:35"
+
+        / # ls
+        bin              dev              home             root             tmp              var
+        containerVolume  etc              proc             sys              usr
+
+        / # cd containerVolume/
+
+        /containerVolume # echo -e "hello world" >> /containerVolume/test.txt
+
+        /containerVolume # ls
+        test.txt
+
+        /containerVolume # cat test.txt
+        hello world
+        ```
+
+    * host:
+
+        ```console
+        $ ls /root
+        busybox  busybox.tar  mnt  volume  writeLayer
+
+        $ ls /root/volume/
+        test.txt
+
+        $ cat /root/volume/test.txt
+        hello world
+
+        # after container exit, volume and its contents are preserved
+        $ ls /root/
+        busybox  busybox.tar  volume
+
+        $ ls /root/volume/
+        test.txt
+
+        $ cat /root/volume/test.txt
+        hello world
+        ```
+
+* Test 2 mounts a directory (with a modified test.txt inside) onto a container:
+
+    * host:
+
+        ```console
+        $ ls /root
+        busybox  busybox.tar  volume
+
+        $ ls /root/volume/
+        test.txt
+
+        $ cat /root/volume/test.txt
+        hello world again!
+        ```
+
+    * start a container (with root)
+
+        ```console
+        $ ./mydocker run -ti -v /root/volume:/containerVolume sh
+        INFO[0000] mkdir parent dir /root/volume error. mkdir /root/volume: file exists  source="container/container_process.go:129"
+        INFO[0000] mounted volumes: ["/root/volume" "/containerVolume"]  source="container/container_process.go:68"
+        INFO[0000] found subsystem's cgroupPath at /sys/fs/cgroup/cpuset/  source="subsystems/cpu_set.go:22"
+        INFO[0000] found subsystem's cgroupPath at /sys/fs/cgroup/memory/  source="subsystems/memory.go:22"
+        INFO[0000] found subsystem's cgroupPath at /sys/fs/cgroup/cpu,cpuacct/  source="subsystems/cpu.go:22"
+        INFO[0000] complete command is sh                        source="4.3/run.go:51"
+        INFO[0000] init come on                                  source="4.3/main_command.go:76"
+        INFO[0000] current location is /root/mnt                 source="container/init.go:61"
+        INFO[0000] executed "mount --make-rprivate /"            source="container/init.go:82"
+        INFO[0000] bind mounted /root/mnt                        source="container/init.go:90"
+        INFO[0000] pivot_root to /root/mnt, old root at /root/mnt/.pivot_root  source="container/init.go:104"
+        INFO[0000] unmounted /.pivot_root                        source="container/init.go:115"
+        INFO[0000] removed /.pivot_root                          source="container/init.go:121"
+        INFO[0000] mounted proc on /proc                         source="container/init.go:69"
+        INFO[0000] mounted tmpfs on /dev                         source="container/init.go:72"
+        INFO[0000] found path /bin/sh                            source="container/init.go:35"
+
+        / # ls
+        bin              dev              home             root             tmp              var
+        containerVolume  etc              proc             sys              usr
+
+        / # ls containerVolume/
+        test.txt
+
+        / # cat containerVolume/test.txt
+        hello world again!
+
+        / # echo -e "hello world again x2!" >> /containerVolume/test.txt
+
+        / # cat /containerVolume/test.txt
+        hello world again!
+        hello world again x2!
+
+        / # echo -e "another hello world again!" >> /containerVolume/test_again.txt
+
+        / # ls /containerVolume/
+        test.txt        test_again.txt
+
+        / # exit
+        ```
+
+    * on the host, volume folder along with its contents are preserved:
+
+        ```console
+        $ cd volume/
+
+        $ ls
+        test_again.txt  test.txt
+
+        $ cat test.txt
+        hello world again!
+        hello world again x2!
+
+        $ cat test_again.txt
+        another hello world again!
+        ```
