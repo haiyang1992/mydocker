@@ -317,3 +317,13 @@
         $ cat test_again.txt
         another hello world again!
         ```
+
+## 4. Simple container packaging
+
+* ```mydocker commit``` saves a running container as an image
+
+* While a container is running, in a new terminal, we can run ```./mydocker commit ${imagename}``` and get ```/root/${imagename}.tar``` that includes the whole file system of the container.
+
+* Program flow:
+
+    ![commitContainer](../resources/ch4_3.jpg)
