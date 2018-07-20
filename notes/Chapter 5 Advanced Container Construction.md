@@ -102,3 +102,24 @@
         E874B774FB   E874B774FB   22168       Running     top         2018-07-20 12:01:44
         6304F850E5   bird         22202       Running     top         2018-07-20 12:02:17
         ```
+
+## 3. Checking container logs
+
+* We can redirect the ```stdout``` of the container process to ```/var/run/mydocker/<containername>/container.log```, and use ```mydocker logs``` to read and print its contents.
+
+* Test:
+
+    ```console
+    # omitting the log info
+    $ ./mydocker run -d --name bird top
+
+    $ ./mydocker ps
+    ID           NAME        PID         STATUS      COMMAND     CREATED
+    7EB62FF000   bird        1922        Running     top         2018-07-20 15:50:57
+
+    $ ./mydocker logs bird
+    Mem: 1885392K used, 155628K free, 55092K shrd, 40312K buff, 347648K cached
+    CPU: 20.5% usr  3.8% sys  0.0% nic 75.4% idle  0.1% io  0.0% irq  0.0% sirq
+    Load average: 1.35 1.45 1.34 2/563 5
+    PID  PPID USER     STAT   VSZ %VSZ CPU %CPU COMMAND
+    ```
