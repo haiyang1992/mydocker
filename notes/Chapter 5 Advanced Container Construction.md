@@ -123,3 +123,86 @@
     Load average: 1.35 1.45 1.34 2/563 5
     PID  PPID USER     STAT   VSZ %VSZ CPU %CPU COMMAND
     ```
+
+## 4. Re-entering container namespace
+
+* Try to realize the ```mydocker exec``` function to re-enter a container after its creation.
+
+* ```setns``` is a syscall to re-enter a desginated namespace according to a given PID. It opens the files under ```/proc/[pid]/ns/``` and enables the current process to enter a given namespace. However for Go-lang, a multi-threaded process cannot use ```setns``` to enter the ```Mount``` namespace and each time Go starts a program it enters multi-threaded mode, and we can't directly call ```setns```.
+
+* ```Cgo``` enables Go programs to call C functions and standard libraries.
+
+    * The two environmental variables determine if the embedded ```C``` function would truly run. If yes, it will run before the Go program's environment is initialized, avoiding the fact that multi-threaded Go programs cannot enter the ```Mount``` namespace.
+
+    * ```/proc/self/exe exec``` (i.e. ```mydocker exec```) forks itself, but this execution differs from the program's initial execution, with the environmental variabels set this time, and we are able to let the C code enter the corresponding namespaces.
+
+* Program flow:
+
+    * ![execCommand](../resources/ch5_4.jpg)
+
+* Testing:
+
+    ```console
+    $ ./mydocker run --name bird -d top
+    nsenter: missing mydocker_pid env, skipping nsenter
+    INFO[0000] tty enabled: false                            source="5.4/main_command.go:74"
+    INFO[0000] untared busybox.tar to /root/busybox          source="container/container_process.go:124"
+    INFO[0000] created directory /root/writeLayer            source="container/container_process.go:136"
+    INFO[0000] created directory /root/mnt/                  source="container/container_process.go:147"
+    INFO[0000] "mount -t aufs -o dirs=/root/writeLayer:/root/busybox none /root/mnt/" successful  source="container/container_process.go:157"
+    INFO[0000] using bird as container name                  source="5.4/run.go:85"
+    INFO[0000] written config file for container[Name: bird, ID: 6E0666B20B] to /var/run/mydocker/bird/config.json  source="5.4/run.go:123"
+    INFO[0000] found subsystem's cgroupPath at /sys/fs/cgroup/cpuset/  source="subsystems/cpu_set.go:22"
+    INFO[0000] found subsystem's cgroupPath at /sys/fs/cgroup/memory/  source="subsystems/memory.go:22"
+    INFO[0000] found subsystem's cgroupPath at /sys/fs/cgroup/cpu,cpuacct/  source="subsystems/cpu.go:22"
+    INFO[0000] finished setting up cgroup                    source="5.4/run.go:45"
+    INFO[0000] complete command is top                       source="5.4/run.go:69"
+
+    $ ./mydocker ps
+    nsenter: missing mydocker_pid env, skipping nsenter
+    ID           NAME        PID         STATUS      COMMAND     CREATED
+    6E0666B20B   bird        25398       Running     top         2018-07-23 15:45:26
+
+    $ ./mydocker exec bird sh
+    nsenter: missing mydocker_pid env, skipping nsenter
+    INFO[0000] exec container: container PID is 25398        source="5.4/exec.go:29"
+    INFO[0000] exec container: command is sh                 source="5.4/exec.go:30"
+    nsenter: got mydocker_pid = 25398
+    nsenter: got mydocker_cmd = sh
+    nsenter: setns on ipc namespace success
+    nsenter: setns on uts namespace success
+    nsenter: setns on net namespace success
+    nsenter: setns on pid namespace success
+    nsenter: setns on mnt namespace success
+    / # ps -ef
+    PID   USER     TIME  COMMAND
+        1 root      0:00 top
+        7 root      0:00 sh
+        8 root      0:00 ps -ef
+    / # exit
+
+    # note that we can show the root directory of busybox here
+    $ ./mydocker exec bird "ls -l"
+    nsenter: missing mydocker_pid env, skipping nsenter
+    INFO[0000] exec container: container PID is 26358        source="5.4/exec.go:29"
+    INFO[0000] exec container: command is ls -l              source="5.4/exec.go:30"
+    nsenter: got mydocker_pid = 26358
+    nsenter: got mydocker_cmd = ls -l
+    nsenter: setns on ipc namespace success
+    nsenter: setns on uts namespace success
+    nsenter: setns on net namespace success
+    nsenter: setns on pid namespace success
+    nsenter: setns on mnt namespace success
+    total 40
+    drwxr-xr-x    2 root     root         12288 May 22 17:00 bin
+    drwxr-xr-x    2 root     root            40 Jul 23 07:54 dev
+    drwxr-xr-x    3 root     root          4096 Jul 16 02:26 etc
+    drwxr-xr-x    2 nobody   nogroup       4096 May 22 17:00 home
+    dr-xr-xr-x  213 root     root             0 Jul 23 07:54 proc
+    drwx------    2 root     root          4096 May 22 17:00 root
+    drwxr-xr-x    2 root     root          4096 Jul 16 02:26 sys
+    drwxrwxrwt    2 root     root          4096 May 22 17:00 tmp
+    drwxr-xr-x    3 root     root          4096 May 22 17:00 usr
+    drwxr-xr-x    4 root     root          4096 May 22 17:00 var
+
+    ```
