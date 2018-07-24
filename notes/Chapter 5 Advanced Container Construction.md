@@ -206,3 +206,77 @@
     drwxr-xr-x    4 root     root          4096 May 22 17:00 var
 
     ```
+## 5. Stopping a container
+
+* Goal is to find a container's PID and send a ```SIGTERM``` signal.
+
+* Steps:
+
+    1. Get container's PID
+
+    2. Send ```kill``` signal to the PID
+
+    3. Modify container's info
+
+    4. Rewrite into the config file
+
+* Program flow:
+
+    ![stopCommand](../resources/ch5_5.jpg)
+
+* Test:
+
+    ```console
+    $ ./mydocker run --name bird -d top
+    nsenter: missing mydocker_pid env, skipping nsenter
+    INFO[0000] tty enabled: false                            source="5.5/main_command.go:74"
+    INFO[0000] untared busybox.tar to /root/busybox          source="container/container_process.go:124"
+    INFO[0000] created directory /root/writeLayer            source="container/container_process.go:136"
+    INFO[0000] created directory /root/mnt/                  source="container/container_process.go:147"
+    INFO[0000] "mount -t aufs -o dirs=/root/writeLayer:/root/busybox none /root/mnt/" successful  source="container/container_process.go:157"
+    INFO[0000] using bird as container name                  source="5.5/run.go:85"
+    INFO[0000] written config file for container[Name: bird, ID: 90EAE7159C] to /var/run/mydocker/bird/config.json  source="5.5/run.go:123"
+    INFO[0000] found subsystem's cgroupPath at /sys/fs/cgroup/cpuset/  source="subsystems/cpu_set.go:22"
+    INFO[0000] found subsystem's cgroupPath at /sys/fs/cgroup/memory/  source="subsystems/memory.go:22"
+    INFO[0000] found subsystem's cgroupPath at /sys/fs/cgroup/cpu,cpuacct/  source="subsystems/cpu.go:22"
+    INFO[0000] finished setting up cgroup                    source="5.5/run.go:45"
+    INFO[0000] complete command is top                       source="5.5/run.go:69"
+
+    $ ./mydocker ps
+    nsenter: missing mydocker_pid env, skipping nsenter
+    ID           NAME        PID         STATUS      COMMAND     CREATED
+    90EAE7159C   bird        14229       Running     top         2018-07-24 14:06:20
+
+    $ ps -ef | grep top
+    root     14229  2693  0 14:06 pts/1    00:00:00 top
+
+    $ ./mydocker stop bird
+    nsenter: missing mydocker_pid env, skipping nsenter
+    INFO[0000] sent kill command to container bird with pid 14229  source="5.5/stop.go:33"
+    INFO[0000] overwritten config file /var/run/mydocker/bird/config.json  source="5.5/stop.go:52"
+
+    $ ./mydocker ps
+    nsenter: missing mydocker_pid env, skipping nsenter
+    ID           NAME        PID         STATUS      COMMAND     CREATED
+    90EAE7159C   bird                    Stopped     top         2018-07-24 14:06:20
+    ```
+
+## 6. Deleting a container
+
+* Steps:
+
+    1. Find the container according to the name given
+
+    2. Determine if the container is running
+
+    3. Find the config file location and delete all files
+
+* Test: if we continue from section 5
+
+    ```console
+    $ ./mydocker rm bird
+
+    $ ./mydocker ps
+    nsenter: missing mydocker_pid env, skipping nsenter
+    ID          NAME        PID         STATUS      COMMAND     CREATED
+    ```
